@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- background -->
+    <path
+        android:fillColor="#1E88E5"
+        android:pathData="M30,6h48a24,24 0 0 1 24,24v48a24,24 0 0 1 -24,24h-48a24,24 0 0 1 -24,-24v-48a24,24 0 0 1 24,-24z" />
+    <!-- speaker -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,46h10l14,-12v40l-14,-12h-10z" />
+    <!-- slider track -->
+    <path
+        android:fillColor="#99FFFFFF"
+        android:pathData="M70,24h8a4,4 0 0 1 4,4v52a4,4 0 0 1 -4,4h-8a4,4 0 0 1 -4,-4v-52a4,4 0 0 1 4,-4z" />
+    <!-- slider fill -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M70,56h8a4,4 0 0 1 4,4v20a4,4 0 0 1 -4,4h-8a4,4 0 0 1 -4,-4v-20a4,4 0 0 1 4,-4z" />
+    <!-- knob -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#1E88E5"
+        android:strokeWidth="3"
+        android:pathData="M74,46m-10,0a10,10 0 1 1 20,0a10,10 0 1 1 -20,0" />
+</vector>
