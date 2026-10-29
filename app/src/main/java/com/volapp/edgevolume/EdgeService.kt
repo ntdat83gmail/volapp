@@ -9,9 +9,13 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.RectF
+import android.graphics.Shader
+import android.graphics.Typeface
 import android.media.AudioManager
 import android.os.Build
 import android.os.Handler
@@ -80,37 +84,112 @@ class EdgeService : Service() {
     private class PanelView(ctx: Context, val onTouchLevel: (Float) -> Unit) : View(ctx) {
         private var level = 0f
         private val d = resources.displayMetrics.density
-        private val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(215, 30, 30, 30) }
-        private val track = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(110, 255, 255, 255) }
-        private val fg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(0, 170, 255) }
+        private var shown = 0f // animated level
+        private val bg = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.argb(225, 24, 26, 34) }
+        private val fg = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val edge = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(200, 255, 255, 255)
+            strokeWidth = 2 * d
+        }
+        private val border = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 1.5f * d
+            color = Color.argb(60, 255, 255, 255)
+        }
         private val txt = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
-            textSize = 16 * d
+            textSize = 15 * d
+            typeface = Typeface.DEFAULT_BOLD
             textAlign = Paint.Align.CENTER
         }
+        private val icon = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            strokeWidth = 2.2f * d
+            strokeCap = Paint.Cap.ROUND
+            style = Paint.Style.STROKE
+        }
+        private val iconFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
         private val r = RectF()
-        private val top get() = 16 * d
-        private val bottom get() = height - 48 * d
+        private val clip = Path()
+        private val spk = Path()
+        private val top get() = 0f
+        private val bottom get() = height.toFloat()
 
         fun setLevel(l: Float) {
             level = l
-            invalidate()
+            postInvalidateOnAnimation()
+        }
+
+        override fun onSizeChanged(w: Int, h: Int, ow: Int, oh: Int) {
+            fg.shader = LinearGradient(
+                0f, h.toFloat(), 0f, 0f,
+                Color.rgb(0, 122, 255), Color.rgb(90, 220, 255), Shader.TileMode.CLAMP
+            )
+            r.set(0f, 0f, w.toFloat(), h.toFloat())
+            clip.reset()
+            clip.addRoundRect(r, w / 2f, w / 2f, Path.Direction.CW)
         }
 
         override fun onDraw(c: Canvas) {
             val w = width.toFloat()
-            r.set(0f, 0f, w, height.toFloat())
-            c.drawRoundRect(r, 18 * d, 18 * d, bg)
-            r.set(w / 2 - 9 * d, top, w / 2 + 9 * d, bottom)
-            c.drawRoundRect(r, 9 * d, 9 * d, track)
-            r.top = bottom - (bottom - top) * level
-            c.drawRoundRect(r, 9 * d, 9 * d, fg)
-            c.drawText("${(level * 100).toInt()}%", w / 2, height - 16 * d, txt)
+            val h = height.toFloat()
+            shown += (level - shown) * 0.35f
+            val animating = Math.abs(level - shown) > 0.002f
+            if (!animating) shown = level
+
+            c.save()
+            c.clipPath(clip)
+            c.drawRect(0f, 0f, w, h, bg)
+            val fy = h - h * shown
+            c.drawRect(0f, fy, w, h, fg)
+            if (shown > 0.01f && shown < 0.99f) c.drawLine(0f, fy, w, fy, edge)
+            c.restore()
+            c.drawRoundRect(0.75f * d, 0.75f * d, w - 0.75f * d, h - 0.75f * d, w / 2f, w / 2f, border)
+
+            c.drawText("${Math.round(shown * 100)}", w / 2, 40 * d, txt)
+
+            // speaker icon near the bottom
+            val cx = w / 2 - 4 * d
+            val cy = h - 40 * d
+            spk.reset()
+            spk.moveTo(cx - 9 * d, cy - 4 * d)
+            spk.lineTo(cx - 4 * d, cy - 4 * d)
+            spk.lineTo(cx + 2 * d, cy - 10 * d)
+            spk.lineTo(cx + 2 * d, cy + 10 * d)
+            spk.lineTo(cx - 4 * d, cy + 4 * d)
+            spk.lineTo(cx - 9 * d, cy + 4 * d)
+            spk.close()
+            c.drawPath(spk, iconFill)
+            val waves = when {
+                shown < 0.01f -> 0
+                shown < 0.34f -> 1
+                shown < 0.67f -> 2
+                else -> 3
+            }
+            for (i in 1..waves) {
+                val rad = (4 + i * 4) * d
+                r.set(cx + 2 * d - rad + 4 * d, cy - rad, cx + 2 * d + rad + 4 * d, cy + rad)
+                c.drawArc(r, -45f, 90f, false, icon)
+            }
+            if (waves == 0) {
+                c.drawLine(cx + 7 * d, cy - 5 * d, cx + 15 * d, cy + 5 * d, icon)
+                c.drawLine(cx + 15 * d, cy - 5 * d, cx + 7 * d, cy + 5 * d, icon)
+            }
+            if (animating) postInvalidateOnAnimation()
         }
 
+        private var downY = 0f
+        private var downLevel = 0f
+
+        // Relative drag: touching does not jump to that position; moving adjusts from the current level.
         override fun onTouchEvent(e: MotionEvent): Boolean {
-            if (e.actionMasked == MotionEvent.ACTION_DOWN || e.actionMasked == MotionEvent.ACTION_MOVE) {
-                onTouchLevel(((bottom - e.y) / (bottom - top)).coerceIn(0f, 1f))
+            when (e.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downY = e.y
+                    downLevel = level
+                }
+                MotionEvent.ACTION_MOVE ->
+                    onTouchLevel((downLevel + (downY - e.y) / (bottom - top)).coerceIn(0f, 1f))
             }
             return true
         }
@@ -118,18 +197,20 @@ class EdgeService : Service() {
 
     private fun showPanel(side: Int, p: Prefs) {
         val d = resources.displayMetrics
+        val panelH = d.heightPixels * p.pillHeightPct / 100
         if (panel == null) {
             val v = PanelView(this) { setVolume(Math.round(it * maxVol)) }
             val lp = WindowManager.LayoutParams(
-                (72 * d.density).toInt(),
-                d.heightPixels * p.heightPct / 100,
+                (p.pillWidthDp * d.density).toInt(),
+                panelH,
                 overlayType(),
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT
             )
-            lp.gravity = side or Gravity.CENTER_VERTICAL
+            lp.gravity = side or Gravity.TOP
             lp.x = (4 * d.density).toInt()
+            lp.y = (d.heightPixels - panelH) * p.pillPosPct / 100
             wm.addView(v, lp)
             panel = v
         }

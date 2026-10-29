@@ -43,6 +43,9 @@ class MainActivity : Activity() {
 
         root.addView(slider("Độ rộng dải (dp)", 10, 80, prefs.widthDp) { prefs.widthDp = it })
         root.addView(slider("Chiều cao dải (% màn hình)", 20, 100, prefs.heightPct) { prefs.heightPct = it })
+        root.addView(slider("Độ rộng viên thuốc (dp)", 40, 160, prefs.pillWidthDp) { prefs.pillWidthDp = it })
+        root.addView(slider("Chiều cao viên thuốc (% màn hình)", 30, 100, prefs.pillHeightPct) { prefs.pillHeightPct = it })
+        root.addView(slider("Vị trí viên thuốc (0 = trên, 100 = dưới)", 0, 100, prefs.pillPosPct) { prefs.pillPosPct = it })
         root.addView(slider("Quãng vuốt cho full âm lượng (%)", 20, 100, prefs.sensitivityPct) { prefs.sensitivityPct = it })
     }
 

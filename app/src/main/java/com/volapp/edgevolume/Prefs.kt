@@ -26,6 +26,18 @@ class Prefs(context: Context) {
     var sensitivityPct: Int
         get() = sp.getInt("sensitivityPct", 70)
         set(v) = sp.edit().putInt("sensitivityPct", v).apply()
+    /** volume pill width in dp */
+    var pillWidthDp: Int
+        get() = sp.getInt("pillWidthDp", 72)
+        set(v) = sp.edit().putInt("pillWidthDp", v).apply()
+    /** volume pill height as % of screen */
+    var pillHeightPct: Int
+        get() = sp.getInt("pillHeightPct", 70)
+        set(v) = sp.edit().putInt("pillHeightPct", v).apply()
+    /** vertical position of the pill: 0 = top, 100 = bottom */
+    var pillPosPct: Int
+        get() = sp.getInt("pillPosPct", 50)
+        set(v) = sp.edit().putInt("pillPosPct", v).apply()
     var showStrip: Boolean
         get() = sp.getBoolean("showStrip", false)
         set(v) = sp.edit().putBoolean("showStrip", v).apply()
