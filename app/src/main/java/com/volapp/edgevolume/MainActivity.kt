@@ -49,8 +49,17 @@ class MainActivity : Activity() {
         root.addView(slider("Quãng vuốt cho full âm lượng (%)", 20, 100, prefs.sensitivityPct) { prefs.sensitivityPct = it })
     }
 
+    // Close the settings screen when it leaves the foreground so its views are freed;
+    // only the lightweight edge service stays resident.
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) finish()
+    }
+
     override fun onResume() {
         super.onResume()
+        // The service may have been killed (app update, low memory); restart it if it should be on.
+        if (prefs.enabled && canOverlay()) EdgeService.start(this)
         updateButton()
     }
 
